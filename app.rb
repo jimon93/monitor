@@ -1,3 +1,4 @@
+#!/usr/local/bin/ruby
 require 'optparse'
 require 'fssm'
 
