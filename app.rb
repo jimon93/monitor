@@ -1,71 +1,62 @@
-# Extend ============= {{{
-# Maybe #{{{
-class NilClass
-  def method_missing( method_name, *args )
-    nil
-  end
-end #}}}
-# Enumerable Extend #{{{
-module Enumerable
-  #alias :filter :find_all
-  def count_by(&block)
-    Hash[ group_by(&block).map{ |key,vals| [key, vals.size] } ]
-  end
-end #}}}
-# Identity #{{{
-class Object
-  def identity
-    self
-  end
-end #}}}
-# ==================== }}}
-
 require 'optparse'
 require 'fssm'
 
+class Main
+  def initialize
+    options = MyOptionParser.new.parse
+    @pattern = Pattern.new(options)
+    @command = Command.new(options)
+  end
+
+  def start
+    cmd = @command
+    FSSM.monitor('.', @pattern) do
+      update do |base, file|
+        cmd.execute(base, file)
+      end
+      create do |base, file|
+        cmd.execute(base, file)
+      end
+    end
+  end
+end
+
 class MyOptionParser
   def initialize
-    @option = {:pattern => "**/*"}
+    @options = {:pattern => "**/*"}
     @parser = OptionParser.new
 
-    @parser.on("-p", "--pattern PATTERN"){ |v| @option[:pattern] = v }
+    @parser.on("-p", "--pattern PATTERN"){ |v| @options[:pattern] = v }
   end
 
   def parse
-    argv = @parser.parse(ARGV)
-    [@option, argv]
+    @options[:argv] = @parser.parse(ARGV)
+    @options
   end
 end
 
-class Commandor
-  def initialize(option, argv)
-    @command = argv.join(" ")
+class Pattern < String
+  def initialize(options)
+    super options[:pattern]
+  end
+end
+
+class Command
+  def initialize(options)
+    @base_command = options[:argv].join(" ") || ""
   end
 
   def execute(base, file)
-    command = create_command(base, file)
+    dict = { "base" => base, "file" => file }
+    command = @base_command.gsub(/%(file|base)/){ dict[$1] }
+
+    puts "command: `#{command}`"
     puts `#{command}`
   end
 
-  private
-  def create_command(base, file)
-    dict = { "base" => base, "file" => file }
-    @command.gsub(/%(file|base)/){ dict[$1] }
+  def to_s
+    @base_command
   end
 end
 
-
-option, argv = MyOptionParser.new.parse
-pattern = option[:pattern]
-commandor = Commandor.new(option, argv)
-
-FSSM.monitor('.', pattern) do
-  update do |base, file|
-    puts "UPDATE: #{base}/#{file}"
-    commandor.execute(base, file)
-  end
-  create do |base, file|
-    puts "CREATE: #{base}/#{file}"
-    commandor.execute(base, file)
-  end
-end
+Main.new.start
