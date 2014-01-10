@@ -19,9 +19,9 @@ class Main
       create do |base, file|
         CreateCommand.new(options, base, file).execute
       end
-      remove do |base, file|
-        RemoveCommand.new(options, base, file).execute
-      end
+      #remove do |base, file|
+      #  RemoveCommand.new(options, base, file).execute
+      #end
     end
   end
 end
@@ -31,11 +31,11 @@ class MyOptionParser
     @options = {:path => ".", :pattern => "**/*"}
     @parser = OptionParser.new
 
-    desc = "one or more glob pattern (default: '**/*')"
-    @parser.on("-p", "--pattern PATTERN", desc){ |v| @options[:pattern] = v }
-
     desc =  "the path to watch (default: '.')"
     @parser.on("-w", "--watch-path PATH", desc){ |v| @options[:path] = v }
+
+    desc = "one or more glob pattern (default: '**/*')"
+    @parser.on("-p", "--pattern PATTERN", desc){ |v| @options[:pattern] = v }
 
     desc = "when a file is create, use a command"
     @parser.on('-c', "--create COMMAND", desc){ |v| @options[:create] = v }
@@ -43,8 +43,8 @@ class MyOptionParser
     desc = "when a file is update, use a command"
     @parser.on('-u', "--update COMMAND", desc){ |v| @options[:update] = v }
 
-    desc = "when a file is remove, use a command"
-    @parser.on('-r', "--remove COMMAND", desc){ |v| @options[:remove] = v }
+    #desc = "when a file is remove, use a command"
+    #@parser.on('-r', "--remove COMMAND", desc){ |v| @options[:remove] = v }
   end
 
   def parse
@@ -71,8 +71,10 @@ class Command
   end
 
   def execute
-    puts "#{self.class.name}: `#{extend_command}`"
-    puts `#{extend_command}`
+    unless extend_command.empty?
+      puts "#{self.class.name}: `#{extend_command}`"
+      puts `#{extend_command}`
+    end
   end
 
   protected
