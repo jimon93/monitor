@@ -14,10 +14,10 @@ class Main
     options = @options
     FSSM.monitor(@watch_path, @pattern) do
       update do |base, file|
-        UpdateCommand.new(options, base, file).execute
+        Command.new(options[:update], base, file).execute
       end
       create do |base, file|
-        CreateCommand.new(options, base, file).execute
+        Command.new(options[:create], base, file).execute
       end
       #remove do |base, file|
       #  RemoveCommand.new(options, base, file).execute
@@ -49,7 +49,9 @@ class MyOptionParser
 
   def parse
     @options[:argv] = @parser.order(ARGV)
-    @options
+    @options[:update] ||= @options[:argv].join(" ")
+    @options[:create] ||= @options[:argv].join(" ")
+    return @options
   end
 end
 
@@ -66,8 +68,8 @@ class Pattern < Array
 end
 
 class Command
-  def initialize(options, base, file)
-    @options, @base, @file = options, base, file
+  def initialize(command, base, file)
+    @command, @base, @file = command, base, file
   end
 
   def execute
@@ -77,43 +79,19 @@ class Command
     end
   end
 
-  protected
-  def base_command
-    raise NotImplementedError
-  end
-
   private
   def extend_command
-    @_extend_command ||= base_command.gsub(/[$%](file|base|dir)/){ dict[$1] }
+    @_extend_command ||= @command.gsub(/[$%](file|base|dir|fullpath)/){ dict[$1] }
   end
 
   def dict
+    #switch文のほうがいいかも
     @_dict ||= {
-      "base" => base,
-      "file" => file,
-      "dir"  => File.dirname(file)
+      "base" => @base,
+      "file" => @file,
+      "dir"  => File.dirname(@file),
+      "fullpath" => "#{@base}/#{@file}"
     }
-  end
-end
-
-class UpdateCommand < Command
-  protected
-  def base_command
-    @options[:update] || @options[:argv].join(" ") || ""
-  end
-end
-
-class CreateCommand < Command
-  protected
-  def base_command
-    @options[:create] || @options[:argv].join(" ") || ""
-  end
-end
-
-class RemoveCommand < Command
-  protected
-  def base_command
-    @options[:remove] ||  ""
   end
 end
 
