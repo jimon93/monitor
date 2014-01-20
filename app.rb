@@ -19,9 +19,6 @@ class Main
       create do |base, file|
         Command.new(options[:create], base, file).execute
       end
-      #remove do |base, file|
-      #  RemoveCommand.new(options, base, file).execute
-      #end
     end
   end
 end
@@ -51,8 +48,17 @@ class MyOptionParser
     @options[:argv] = @parser.order(ARGV)
     @options[:update] ||= @options[:argv].join(" ")
     @options[:create] ||= @options[:argv].join(" ")
+    validate
     return @options
   end
+
+  def validate
+    if @options[:update].empty? and @options[:create].empty?
+      puts @parser.help
+      exit 1
+    end
+  end
+
 end
 
 class WatchPath < String
@@ -81,17 +87,22 @@ class Command
 
   private
   def extend_command
-    @_extend_command ||= @command.gsub(/[$%](file|base|dir|fullpath)/){ dict[$1] }
+    @_extend_command ||= @command.gsub(/[$%](file|base|dir|fullpathdir|fullpath)/){ get_path($1) }
   end
 
-  def dict
-    #switch文のほうがいいかも
-    @_dict ||= {
-      "base" => @base,
-      "file" => @file,
-      "dir"  => File.dirname(@file),
-      "fullpath" => "#{@base}/#{@file}"
-    }
+  def get_path(path)
+    case path
+    when "base" then
+      @base
+    when "file" then
+      @file
+    when "dir" then
+      File.dirname @file
+    when "fullpath" then
+      "#{@base}/#{@file}"
+    when "fullpathdir" then
+      File.dirname "#{@base}/#{@file}"
+    end
   end
 end
 
