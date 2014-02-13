@@ -11,6 +11,15 @@ class Main
   end
 
   def start
+    begin
+      watch_start
+    rescue => ex
+      puts ex.message
+    end
+  end
+
+  private
+  def watch_start
     options = @options
     FSSM.monitor(@watch_path, @pattern) do
       update do |base, file|
@@ -87,7 +96,7 @@ class Command
 
   private
   def extend_command
-    @_extend_command ||= @command.gsub(/[$%](file|base|dir|fullpathdir|fullpath)/){ get_path($1) }
+    @command.gsub(/[$%](file|base|dir|fullpathdir|fullpath)/){ get_path($1) }
   end
 
   def get_path(path)
